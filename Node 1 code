@@ -1,0 +1,17 @@
+ Node 1 — Transmitter / Access Point (ESP8266)
+Node 1 creates a Wi-Fi hotspot. TX power is reduced to create a controlled dead zone on the expo table. Code is minimal — the AP runs automatically.
+
+// === ESP8266 Wi-Fi Dead Zone Fixer — Node 1 (Access Point) ===
+#include <ESP8266WiFi.h>
+
+const char* ap_ssid = "DeadZoneFixer_Demo";
+const char* ap_pass = "antenna123";
+
+void setup() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(ap_ssid, ap_pass, 1, 0, 4);  // ch1, not hidden, max 4 clients
+  // Reduce TX power to create dead zone at ~2-3 m
+  WiFi.setOutputPower(5.0);  // 5 dBm (range: 0 to 20.5 dBm)
+}
+
+void loop() { delay(1000); }  // AP runs automatically
