@@ -1,0 +1,9 @@
+1. Project Overview
+1.1 The Problem — Wi-Fi Dead Zones
+Wi-Fi dead zones are a universal frustration in homes, offices, warehouses, hospitals, and factories. They occur when the 2.4 GHz signal from a Wi-Fi router cannot reach a corner, room, or area due to walls, metal shelving, or simply distance. The standard industry solution is to add more access points or Wi-Fi extenders — which require power sockets, configuration, and additional cost.
+This project demonstrates a zero-power-panel alternative: a passive reflector panel made from a patterned metallic surface that redirects Wi-Fi signal energy into a dead zone — combined with an ESP8266-controlled SG90 servo motor that automatically sweeps the reflector to the optimal angle. No manual alignment is needed.
+1.2 What This Demo Shows — The Servo Upgrade
+Two ESP8266 NodeMCU nodes are placed in the expo space. Node 1 is the transmitter acting as a Wi-Fi hotspot. Node 2 is the receiver in a simulated dead zone. Node 2 continuously reads RSSI and displays it on an OLED screen and LED bar graph.
+The SG90 servo motor is mounted on Node 2 and holds the reflector panel. A simple hill-climbing algorithm sweeps the servo in small angle steps, reads RSSI after each step, and locks onto the angle that produces the maximum signal. Visitors watch the servo rotate the panel and the RSSI climb — all automatically — demonstrating the same concept as electronically beam-steered RIS panels used in 6G research.
+
+Industry Talking Point: This demo directly illustrates the technology behind 6G Reconfigurable Intelligent Surfaces (RIS). Your servo-aimed panel is a low-cost physical proof of electronically controlled beam steering — the same principle companies like Nokia, Huawei, Ericsson, and Samsung are racing to deploy in 5G Advanced and 6G networks. The addition of servo auto-aiming upgrades the demo from passive to quasi-active RIS — a significant step up.
