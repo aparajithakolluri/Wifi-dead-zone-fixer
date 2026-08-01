@@ -1,0 +1,140 @@
+Node 2 — Receiver + Servo Auto-Aimer (ESP8266)
+This is the main code. The ESP8266 reads RSSI, drives the OLED and LED bar, and runs the servo hill-climbing algorithm to find and lock the optimal reflector angle.
+
+// === ESP8266 Wi-Fi Dead Zone Fixer — Node 2 (Receiver + Servo) ===
+#include <ESP8266WiFi.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Servo.h>
+
+#define SCREEN_W 128
+#define SCREEN_H 64
+#define SERVO_PIN D4   // GPIO2 — signal via 1kΩ resistor to SG90
+
+Adafruit_SSD1306 display(SCREEN_W, SCREEN_H, &Wire, -1);
+Servo myServo;
+
+const char* ssid = "DeadZoneFixer_Demo";
+const char* password = "antenna123";
+
+// LED bar graph pins (NodeMCU Dx labels)
+int ledPins[] = {14, 12, 13, 15, 0, 3, 1, 2};  // D5,D6,D7,D8,D0,RX,TX,D4*
+// *Note: D4 is also servo pin — use D3 instead if conflict
+
+int bestAngle = 90;     // last best servo angle
+int bestRSSI  = -100;   // best RSSI found
+bool sweeping = false;  // sweep state flag
+unsigned long lastSweep = 0;
+const long SWEEP_INTERVAL = 30000;  // re-sweep every 30 seconds
+
+// --- setup ---
+void setup() {
+  Serial.begin(115200);
+  for (int i = 0; i < 8; i++) pinMode(ledPins[i], OUTPUT);
+
+  myServo.attach(SERVO_PIN);
+  myServo.write(90);  // centre position on boot
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED not found!"); while (true);
+  }
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+
+  WiFi.begin(ssid, password);
+  int tries = 0;
+  while (WiFi.status() != WL_CONNECTED && tries < 30) {
+    showOLED("Connecting...", 0, 0, false);
+    delay(500); tries++;
+  }
+  if (WiFi.status() != WL_CONNECTED) {
+    showOLED("NO AP FOUND", 0, 0, false); while (true);
+  }
+  lastSweep = millis();
+  servoSweep();  // initial sweep on boot
+}
+
+// --- main loop ---
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin(ssid, password); delay(3000); return;
+  }
+
+  // Rolling 5-sample average for stable RSSI reading
+  static int rssiHistory[5] = {-80,-80,-80,-80,-80};
+  static int idx = 0;
+  rssiHistory[idx++ % 5] = WiFi.RSSI();
+  long sum = 0;
+  for (int i = 0; i < 5; i++) sum += rssiHistory[i];
+  int rssi = (int)(sum / 5);
+
+  // Update LED bar
+  int bars = map(rssi, -90, -30, 0, 8);
+  bars = constrain(bars, 0, 8);
+  for (int i = 0; i < 8; i++) digitalWrite(ledPins[i], i < bars ? HIGH : LOW);
+
+  // Update OLED display
+  showOLED(rssiLabel(rssi), rssi, bestAngle, !sweeping);
+
+  // Trigger re-sweep every SWEEP_INTERVAL
+  if (millis() - lastSweep > SWEEP_INTERVAL) {
+    servoSweep();
+    lastSweep = millis();
+  }
+
+  delay(300);
+}
+
+// --- servo hill-climbing sweep ---
+void servoSweep() {
+  sweeping = true;
+  bestRSSI = -100;
+  bestAngle = 90;
+
+  for (int angle = 0; angle <= 180; angle += 5) {
+    myServo.write(angle);
+    delay(300);  // wait for servo + RSSI to settle
+    int r = WiFi.RSSI();
+    if (r > bestRSSI) {
+      bestRSSI = r;
+      bestAngle = angle;
+    }
+    // Show sweep progress on OLED
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);  display.println("SWEEPING...");
+    display.setCursor(0, 12); display.print("Angle: "); display.print(angle); display.println("deg");
+    display.setCursor(0, 24); display.print("RSSI: ");  display.print(r);     display.println(" dBm");
+    display.setCursor(0, 36); display.print("Best: ");  display.print(bestAngle); display.println("deg");
+    display.display();
+  }
+
+  myServo.write(bestAngle);  // Lock to best angle
+  sweeping = false;
+}
+
+// --- OLED display helper ---
+void showOLED(String label, int rssi, int angle, bool locked) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(locked ? "Wi-Fi Signal [LOCKED]" : "Wi-Fi Signal");
+  display.setTextSize(2);
+  display.setCursor(10, 14);
+  display.print(rssi); display.println(" dBm");
+  display.setTextSize(1);
+  display.setCursor(0, 36);
+  display.println(label);
+  display.setCursor(0, 48);
+  display.print("Servo: "); display.print(angle); display.println("deg");
+  display.display();
+}
+
+// --- RSSI quality label ---
+String rssiLabel(int rssi) {
+  if (rssi > -60)  return "EXCELLENT  [#######]";
+  if (rssi > -70)  return "GOOD       [#####  ]";
+  if (rssi > -80)  return "WEAK       [##     ]";
+  return               "DEAD ZONE  [#      ]";
+}
