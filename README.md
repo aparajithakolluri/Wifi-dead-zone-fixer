@@ -1,110 +1,79 @@
-# 📡 WiFi Dead Zone Fixer
-### An Embedded Wireless Network Coverage Analysis and Optimization Project
+📡 WiFi Dead Zone Fixer
 
-## 1. Project Overview
+An ESP8266-based adaptive reflector that steers WiFi signal into dead zones using real-time RSSI feedback.
 
-WiFi Dead Zone Fixer is an embedded wireless networking project developed to identify weak WiFi coverage areas and improve wireless network connectivity through signal-strength analysis and optimized router placement recommendations.
+A low-cost hardware demo of the idea behind 6G Reconfigurable Intelligent Surfaces (RIS): instead of moving the router or buying an extender, a servo-steered aluminum reflector physically redirects the existing signal toward the weak spot, and a hill-climbing algorithm finds the best angle automatically.
 
-The project focuses on addressing one of the common challenges in wireless communication: inconsistent signal distribution and the presence of WiFi dead zones within a coverage area.
 
-Using an ESP8266-based system programmed in C++, the project analyzes WiFi signal strength at different locations, identifies areas with weak connectivity, and provides recommendations for improving network coverage.
+1. Problem
 
-This project demonstrates the practical application of embedded systems and wireless communication concepts in solving real-world connectivity problems.
+Indoor WiFi coverage is uneven because of walls, furniture and distance. Typical fixes (extenders, mesh, moving the router) are static: they don't adapt to where the signal is actually weak. This project closes the loop: measure → steer → re-measure.
 
-## 2. Problem Statement
+2. Approach
+A receiver node sits in the dead zone and measures RSSI of the router's signal.
+It sends the RSSI reading to the controller node.
+The controller node rotates a servo-mounted aluminum reflector in small steps.
+After each step, RSSI is re-measured. If it improved, keep moving in that direction; if it dropped, reverse (hill-climbing).
+The reflector settles at the angle that maximizes RSSI at the dead zone.
+ Router ))) ──► [ Reflector on servo ] ──► Dead zone
+                      ▲                        │
+                      │                        ▼
+              Node 2 (servo control)  ◄── Node 1 (RSSI measurement)
+<!-- TODO: replace the diagram above with a proper block diagram / flowchart image -->
+3. Hardware
+Component	Qty	Role
+ESP8266 (NodeMCU / [model])	2	Node 1: [fill in role], Node 2: [fill in role]
+Servo motor ([model])	[1/2]	Steers the reflector ([pan only / pan + tilt])
+Aluminum reflector ([size] cm)	1	Redirects 2.4 GHz signal
+Power supply	[ ]	[ ]
 
-Wireless networks often experience uneven signal distribution due to distance, physical obstructions, and environmental interference.
+📐 Wiring diagram: docs/wiring.png (add)
 
-This results in:
-- Weak WiFi signal strength in certain locations.
-- Areas with little or no wireless connectivity.
-- Reduced network reliability.
-- Inefficient router placement.
+4. Software
+Language: C++ (Arduino framework)
+node1_rssi/: [what it does: reads RSSI, transmits to Node 2]
+node2_servo/: [what it does: receives RSSI, runs hill-climbing, drives servo]
+Algorithm parameters: step size [ ]°, scan range [ ]° to [ ]°, RSSI smoothing [ ] samples
+5. Results
+Condition	RSSI at dead zone (dBm)
+No reflector	[ ]
+Reflector, fixed/random angle	[ ]
+Reflector, after hill-climbing	[ ]
 
-The objective of this project is to identify these coverage limitations and provide a systematic approach to improving WiFi signal distribution.
+Test setup: router-to-dead-zone distance [ ] m, obstruction: [wall / door / etc.], band: 2.4 GHz, reflector angle found: [ ]°.
 
-## 3. Project Objectives
+Fill this table with your measured numbers. It's the most important section of the README.
 
-- Analyze WiFi signal strength at different locations.
-- Identify weak-signal regions and wireless dead zones.
-- Evaluate variations in wireless signal coverage.
-- Recommend improved router placement for better coverage.
-- Explore practical embedded-system applications in wireless network optimization.
+6. Connection to RIS / 6G
 
-## 4. System Features
+A RIS is a surface of many small elements whose phase response is electronically tuned to shape the reflected beam. This project is a simplified mechanical analogue:
 
-- **WiFi Signal Detection:** Measures wireless signal strength at different locations.
-- **Dead Zone Identification:** Identifies regions experiencing weak or insufficient WiFi coverage.
-- **Coverage Analysis:** Evaluates signal-strength variations across the monitored area.
-- **Router Placement Recommendations:** Suggests suitable router positioning to improve signal distribution.
-- **Signal Visualization:** Represents signal-strength variations using graphs or heatmaps.
+	This project	Real RIS
+Reflecting element	Single aluminum plate	Array of unit cells
+Beam control	Mechanical (servo)	Electronic (PIN diode / varactor phase shift)
+Feedback	RSSI	CSI / channel estimation
+Optimization	Hill-climbing	Beamforming / ML-based optimization
 
-## 5. Technologies and Tools
+It demonstrates the closed-loop principle that RIS-aided networks rely on, at hobby-hardware cost.
 
-| Component | Technology |
-|---|---|
-| Microcontroller | ESP8266 |
-| Programming Language | C++ |
-| Communication Technology | WiFi / IEEE 802.11 |
-| Technical Area | Wireless Signal Analysis |
-| Application Domain | Embedded Systems and Wireless Networking |
+7. Limitations
+Passive specular reflection only (no phase control or gain)
+2.4 GHz only; RSSI is noisy and can trap hill-climbing in local maxima
+[Single-axis / dual-axis] steering
+Tested in [one environment]; results may vary with layout
+8. Future Work
+Dual-axis steering and a larger reflector
+Smarter search (simulated annealing / gradient-free optimizers) to avoid local maxima
+Move toward electronically tunable surfaces (varactor/PIN-diode unit cells)
+5 GHz support and multi-user dead zones
+Logging RSSI vs angle to plot coverage heatmaps
+9. Repo Structure
+├── node1_rssi/        # Node 1 firmware
+├── node2_servo/       # Node 2 firmware
+├── docs/              # photos, demo video, wiring diagram, report/PPT
+└── README.md
+10. Author
 
-## 6. Working Principle
+K. V. S. L. J. Aparajitha B.Tech, Electronics and Communication Engineering GitHub: aparajithakolluri
 
-The project follows a signal-analysis-based approach:
-
-1. **WiFi Detection:** The ESP8266-based system detects available wireless networks.
-2. **Signal Measurement:** WiFi signal strength is measured at different locations.
-3. **Coverage Assessment:** Signal variations are analyzed to identify weak coverage areas.
-4. **Dead Zone Detection:** Locations with insufficient signal strength are identified.
-5. **Optimization:** Router placement recommendations are provided to improve wireless coverage.
-
-## 7. Applications
-
-- Residential WiFi coverage optimization.
-- Office and institutional wireless network planning.
-- Wireless network deployment.
-- Smart homes and IoT environments.
-- Indoor wireless communication analysis.
-
-## 8. Engineering Relevance
-
-This project provides practical exposure to:
-
-- Embedded system development using ESP8266.
-- C++ programming for microcontroller-based applications.
-- Wireless communication fundamentals.
-- WiFi signal-strength analysis.
-- Wireless network coverage assessment.
-- Real-world problem-solving using embedded technologies.
-
-These concepts are relevant to wireless communication, RF engineering, embedded systems, and network infrastructure development.
-
-## 9. Future Scope
-
-The project can be further enhanced through:
-
-- AI-based intelligent router placement optimization.
-- Multi-router and mesh-network coverage analysis.
-- Real-time wireless signal monitoring.
-- Indoor floor-plan-based signal mapping.
-- Mobile application integration.
-- Advanced wireless coverage prediction.
-
-## 10. Project Status
-
-**Status: Completed**
-
-This project was developed as a practical implementation of embedded wireless networking concepts, focusing on WiFi signal analysis, dead zone identification, and wireless coverage optimization.
-
-## 11. Author
-
-**K. V. S. L. J. Aparajitha**
-
-B.Tech – Electronics and Communication Engineering
-
-GitHub: [aparajithakolluri](https://github.com/aparajithakolluri)
-
----
-
-*This project demonstrates the application of embedded systems and wireless communication principles to address practical wireless connectivity challenges.*
+Suggested repo topics: esp8266 wifi rssi antenna reflector ris 6g embedded-systems rf-engineering
