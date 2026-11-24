@@ -1,79 +1,223 @@
-📡 WiFi Dead Zone Fixer
+# 📡 WiFi Dead Zone Fixer
+### An ESP8266-Based Adaptive Reflector for Intelligent WiFi Signal Redirection
 
-An ESP8266-based adaptive reflector that steers WiFi signal into dead zones using real-time RSSI feedback.
+An adaptive WiFi signal redirection system that uses real-time Received Signal Strength Indicator (RSSI) feedback and a servo-controlled aluminum reflector to improve wireless signal reception in indoor dead zones.
 
-A low-cost hardware demo of the idea behind 6G Reconfigurable Intelligent Surfaces (RIS): instead of moving the router or buying an extender, a servo-steered aluminum reflector physically redirects the existing signal toward the weak spot, and a hill-climbing algorithm finds the best angle automatically.
+This project demonstrates a low-cost, hardware-based approach inspired by **Reconfigurable Intelligent Surfaces (RIS)**, a promising technology for next-generation 6G wireless communication systems.
 
+---
 
-1. Problem
+## 1. Project Overview
 
-Indoor WiFi coverage is uneven because of walls, furniture and distance. Typical fixes (extenders, mesh, moving the router) are static: they don't adapt to where the signal is actually weak. This project closes the loop: measure → steer → re-measure.
+WiFi signals often experience weak coverage in certain indoor locations due to walls, furniture, obstacles and increasing distance from the router.
 
-2. Approach
-A receiver node sits in the dead zone and measures RSSI of the router's signal.
-It sends the RSSI reading to the controller node.
-The controller node rotates a servo-mounted aluminum reflector in small steps.
-After each step, RSSI is re-measured. If it improved, keep moving in that direction; if it dropped, reverse (hill-climbing).
-The reflector settles at the angle that maximizes RSSI at the dead zone.
- Router ))) ──► [ Reflector on servo ] ──► Dead zone
-                      ▲                        │
-                      │                        ▼
-              Node 2 (servo control)  ◄── Node 1 (RSSI measurement)
-<!-- TODO: replace the diagram above with a proper block diagram / flowchart image -->
-3. Hardware
-Component	Qty	Role
-ESP8266 (NodeMCU / [model])	2	Node 1: [fill in role], Node 2: [fill in role]
-Servo motor ([model])	[1/2]	Steers the reflector ([pan only / pan + tilt])
-Aluminum reflector ([size] cm)	1	Redirects 2.4 GHz signal
-Power supply	[ ]	[ ]
+Conventional solutions such as WiFi extenders and mesh systems require additional networking hardware. This project explores an alternative approach: physically adjusting a reflector to redirect existing WiFi signals toward areas with poor reception.
 
-📐 Wiring diagram: docs/wiring.png (add)
+The system uses two ESP8266 modules, a servo motor and an aluminum reflector. An RSSI-based feedback mechanism continuously evaluates signal strength and adjusts the reflector angle to search for an improved reception position.
 
-4. Software
-Language: C++ (Arduino framework)
-node1_rssi/: [what it does: reads RSSI, transmits to Node 2]
-node2_servo/: [what it does: receives RSSI, runs hill-climbing, drives servo]
-Algorithm parameters: step size [ ]°, scan range [ ]° to [ ]°, RSSI smoothing [ ] samples
-5. Results
-Condition	RSSI at dead zone (dBm)
-No reflector	[ ]
-Reflector, fixed/random angle	[ ]
-Reflector, after hill-climbing	[ ]
+**Core Concept:**
 
-Test setup: router-to-dead-zone distance [ ] m, obstruction: [wall / door / etc.], band: 2.4 GHz, reflector angle found: [ ]°.
+Measure → Analyze → Adjust → Re-measure → Optimize
 
-Fill this table with your measured numbers. It's the most important section of the README.
+## 2. Working Principle
 
-6. Connection to RIS / 6G
+The system consists of two ESP8266-based nodes.
 
-A RIS is a surface of many small elements whose phase response is electronically tuned to shape the reflected beam. This project is a simplified mechanical analogue:
+1. **RSSI Measurement Node:** Positioned in the WiFi dead zone, it scans the router's WiFi signal and measures its RSSI.
+2. **Controller Node:** Receives the RSSI measurements and controls the servo motor.
+3. **Reflector Mechanism:** An aluminum reflector mounted on the servo changes its orientation to redirect incoming WiFi energy.
+4. **Optimization Algorithm:** A hill-climbing approach evaluates RSSI changes and searches for an angle that provides improved signal strength.
 
-	This project	Real RIS
-Reflecting element	Single aluminum plate	Array of unit cells
-Beam control	Mechanical (servo)	Electronic (PIN diode / varactor phase shift)
-Feedback	RSSI	CSI / channel estimation
-Optimization	Hill-climbing	Beamforming / ML-based optimization
+The process repeats until the system identifies a suitable reflector orientation.
 
-It demonstrates the closed-loop principle that RIS-aided networks rely on, at hobby-hardware cost.
+### System Block Diagram
 
-7. Limitations
-Passive specular reflection only (no phase control or gain)
-2.4 GHz only; RSSI is noisy and can trap hill-climbing in local maxima
-[Single-axis / dual-axis] steering
-Tested in [one environment]; results may vary with layout
-8. Future Work
-Dual-axis steering and a larger reflector
-Smarter search (simulated annealing / gradient-free optimizers) to avoid local maxima
-Move toward electronically tunable surfaces (varactor/PIN-diode unit cells)
-5 GHz support and multi-user dead zones
-Logging RSSI vs angle to plot coverage heatmaps
-9. Repo Structure
-├── node1_rssi/        # Node 1 firmware
-├── node2_servo/       # Node 2 firmware
-├── docs/              # photos, demo video, wiring diagram, report/PPT
+```text
+       WiFi Router
+            |
+            | 2.4 GHz WiFi Signal
+            v
+    Aluminum Reflector
+      (Servo Mounted)
+            |
+            v
+      WiFi Dead Zone
+            |
+            v
+   ESP8266 - Node 1
+    RSSI Measurement
+            |
+            | RSSI Feedback
+            v
+   ESP8266 - Node 2
+    Control Algorithm
+            |
+            v
+       Servo Motor
+            |
+            v
+   Reflector Adjustment
+            |
+            └──── Feedback Loop
+```
+
+## 3. Hardware Requirements
+
+| Component | Quantity | Function |
+|---|---:|---|
+| ESP8266 NodeMCU | 2 | RSSI measurement and system control |
+| Servo Motor | 1 | Controls reflector orientation |
+| Aluminum Reflector | 1 | Reflects WiFi radio waves |
+| Jumper Wires | As required | Hardware connections |
+| External Power Supply | As required | Powers the servo and controller |
+
+*Note: Update the component models, reflector dimensions and power specifications according to the hardware actually used.*
+
+## 4. Software Requirements
+
+| Software / Technology | Purpose |
+|---|---|
+| Arduino IDE | Firmware development |
+| Embedded C/C++ | Programming |
+| ESP8266 WiFi Library | WiFi scanning and RSSI measurement |
+| Servo Library | Servo motor control |
+| Serial Communication | Debugging and monitoring |
+
+### Firmware Modules
+
+**Node 1 – RSSI Measurement**
+- Scans available WiFi networks.
+- Identifies the target router.
+- Measures received signal strength in dBm.
+- Transmits RSSI readings to the controller node.
+
+**Node 2 – Servo Control**
+- Receives RSSI feedback.
+- Implements the hill-climbing optimization algorithm.
+- Adjusts the servo motor position.
+- Evaluates changes in signal strength to determine the next movement.
+
+## 5. Optimization Algorithm – Hill Climbing
+
+Hill climbing is a local optimization technique that searches for an improved solution by evaluating neighboring positions.
+
+In this project, the reflector angle is treated as the optimization parameter, while RSSI is the objective function.
+
+**Algorithm:**
+
+1. Initialize the reflector at a starting angle.
+2. Measure the RSSI at the receiver.
+3. Change the reflector angle by a predefined step.
+4. Measure RSSI again.
+5. Compare the new RSSI with the previous measurement.
+6. If signal strength improves, continue in that direction.
+7. Otherwise, reverse the search direction.
+8. Repeat until a suitable reflector angle is identified.
+
+The objective is to maximize received signal strength.
+
+\[
+\theta_{\text{optimal}} = \arg\max_{\theta} RSSI(\theta)
+\]
+
+## 6. Experimental Results
+
+The performance of the system can be evaluated by comparing received signal strength under different reflector conditions.
+
+| Test Condition | RSSI (dBm) |
+|---|---|
+| Without reflector | To be measured |
+| Reflector at fixed angle | To be measured |
+| Reflector after optimization | To be measured |
+
+**Experimental Setup:**
+- Operating frequency: 2.4 GHz
+- Communication technology: WiFi (IEEE 802.11)
+- Receiver location: WiFi dead zone
+- Optimization technique: Hill climbing
+- Reflector angle: To be measured
+- Router-to-receiver distance: To be measured
+
+*Experimental values will be added after hardware testing.*
+
+## 7. Connection to RIS and 6G Technology
+
+Reconfigurable Intelligent Surfaces (RIS) are emerging technologies designed to control the propagation of electromagnetic waves by manipulating their reflection characteristics.
+
+This project demonstrates a simplified mechanical analogy of the RIS concept.
+
+| Parameter | WiFi Dead Zone Fixer | Real RIS |
+|---|---|---|
+| Reflecting structure | Aluminum reflector | Array of engineered unit cells |
+| Signal control | Mechanical steering | Electronic phase control |
+| Control mechanism | Servo motor | PIN diodes / Varactors |
+| Feedback | RSSI | CSI / Channel estimation |
+| Optimization | Hill climbing | Beamforming / Intelligent optimization |
+
+Although this prototype does not implement a true RIS, it demonstrates the fundamental concept of feedback-based wireless propagation optimization.
+
+## 8. Applications
+
+- Indoor WiFi coverage improvement research
+- Wireless signal propagation experiments
+- Smart antenna and reflector systems
+- Embedded wireless communication projects
+- RIS-inspired experimental prototypes
+- RF and antenna engineering demonstrations
+
+## 9. Limitations
+
+- Uses mechanical reflection rather than electronic phase control.
+- Designed for 2.4 GHz WiFi experiments.
+- RSSI measurements can fluctuate due to multipath propagation and environmental interference.
+- Hill climbing may converge to a local optimum.
+- Performance depends on reflector geometry, placement and surrounding obstacles.
+- A single reflector does not provide the independent phase control available in a true RIS.
+
+## 10. Future Enhancements
+
+- Implement dual-axis reflector steering.
+- Explore multiple reflector geometries.
+- Introduce advanced optimization algorithms.
+- Develop electronically tunable reflecting elements using PIN diodes or varactors.
+- Investigate operation at 5 GHz.
+- Implement RSSI data logging and signal-strength visualization.
+- Explore multi-user wireless coverage optimization.
+
+## 11. Repository Structure
+
+```text
+WiFi-Dead-Zone-Fixer/
+│
+├── node1_rssi/
+│   └── RSSI measurement firmware
+│
+├── node2_servo/
+│   └── Servo control and optimization firmware
+│
+├── docs/
+│   ├── images/
+│   ├── wiring.png
+│   ├── block_diagram.png
+│   └── demo.mp4
+│
 └── README.md
-10. Author
+```
 
-K. V. S. L. J. Aparajitha B.Tech, Electronics and Communication Engineering GitHub: aparajithakolluri
+## 12. Technologies Used
 
-Suggested repo topics: esp8266 wifi rssi antenna reflector ris 6g embedded-systems rf-engineering
+`ESP8266` `Arduino IDE` `Embedded C++` `WiFi` `RSSI` `Servo Motor` `Wireless Communication` `RF Engineering` `Antenna Systems` `RIS` `6G Technology`
+
+## 13. Author
+
+**K. V. S. L. J. Aparajitha**
+
+B.Tech – Electronics and Communication Engineering
+
+Vignan's Institute of Engineering for Women, Visakhapatnam
+
+GitHub: [@aparajithakolluri](https://github.com/aparajithakolluri)
+
+---
+
+*This project explores the intersection of embedded systems, RF engineering, wireless communication and emerging RIS-inspired technologies.*
